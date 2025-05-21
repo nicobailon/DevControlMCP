@@ -26,6 +26,7 @@ import {
     GetConfigArgsSchema,
     SetConfigValueArgsSchema,
     ListProcessesArgsSchema,
+    ClaudeCodeArgsSchema,
 } from './tools/schemas.js';
 import {getConfig, setConfigValue} from './tools/config.js';
 
@@ -256,6 +257,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     ),
                     inputSchema: zodToJsonSchema(EditBlockArgsSchema),
                 },
+
+                // Claude Code meta-tool
+                {
+                    name: "claude_code",
+                    description:
+                        "Executes a prompt directly using the Claude Code CLI with permissions bypassed. This tool provides access to Claude Code's full capabilities including file operations, Git, terminal commands, and web search. Use 'workFolder' for contextual execution and 'tools' to specify which Claude tools to enable (e.g., ['Bash', 'Read', 'Write']). Requires Claude CLI to be installed and permissions accepted manually once with 'claude --dangerously-skip-permissions'. WARNING: This tool bypasses DevControlMCP's internal permission system as it delegates to an external CLI process.",
+                    inputSchema: zodToJsonSchema(ClaudeCodeArgsSchema),
+                },
             ],
         };
     } catch (error) {
@@ -347,6 +356,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 
             case "edit_block":
                 return await handlers.handleEditBlock(args);
+
+            case "claude_code":
+                return await handlers.handleClaudeCode(args);
 
             default:
                 // Telemetry removed

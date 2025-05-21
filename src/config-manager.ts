@@ -8,6 +8,8 @@ export interface ServerConfig {
   blockedCommands?: string[];
   defaultShell?: string;
   allowedDirectories?: string[];
+  claudeCliPath?: string; // Absolute path to the Claude CLI executable
+  claudeCliName?: string; // Name of the Claude CLI binary (e.g., 'claude', 'claude-custom')
   fileWriteLineLimit?: number; // Line limit for file write operations
   fileReadLineLimit?: number; // Default line limit for file read operations
   maxLineCountLimit?: number; // Maximum line count in files (prevents memory issues)
@@ -124,6 +126,8 @@ class ConfigManager {
       ],
       defaultShell: os.platform() === 'win32' ? 'powershell.exe' : 'bash',
       allowedDirectories: [],
+      claudeCliPath: undefined,
+      claudeCliName: 'claude',
       fileWriteLineLimit: 50,  // Default line limit for file write operations
       fileReadLineLimit: 1000,  // Default line limit for file read operations
       maxLineCountLimit: 1000000, // Maximum line count (1 million lines)
@@ -178,6 +182,18 @@ class ConfigManager {
         return key === 'fileReadLineLimit' ? 1000 : 50;
       }
       return numValue;
+    }
+    
+    // Validate claudeCliPath to ensure it's absolute if provided
+    if (key === 'claudeCliPath' && value != null) {
+      if (typeof value !== 'string') {
+        console.warn(`Invalid value for ${key}: ${value}. Must be a string. Using default.`);
+        return undefined;
+      }
+      if (value && !path.isAbsolute(value)) {
+        console.warn(`Invalid value for ${key}: ${value}. Must be an absolute path. Using default.`);
+        return undefined;
+      }
     }
     
     // For all other keys, return value as-is

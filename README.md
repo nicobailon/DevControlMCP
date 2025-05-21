@@ -16,6 +16,7 @@ DevControlMCP is an MCP (Model Context Protocol) tool that enables Claude deskto
 - **Advanced Search**: Find files by name or search within file contents using ripgrep
 - **Code Editing**: Make surgical text replacements or full file rewrites
 - **URL Content**: Fetch and process content from URLs
+- **Claude Code Integration**: Delegate complex tasks to Claude Code CLI instances via the `claude_code` meta-tool
 - **Line-based File Reading**: Read files with line offset and limits for better handling of large files
 - **Audit Logging**: Track all tool calls with automatic log rotation
 - **Fuzzy Search Logging**: Comprehensive logging and troubleshooting for search operations
@@ -25,6 +26,7 @@ DevControlMCP is an MCP (Model Context Protocol) tool that enables Claude deskto
 ### Prerequisites
 - Node.js v18 or higher
 - Claude Desktop app with Pro subscription
+- Claude CLI installed globally (for `claude_code` tool) - install with `npm run install:claude-cli`
 
 ### Quick Install
 
@@ -34,6 +36,20 @@ git clone https://github.com/regismesquita/DevControlMCP.git
 cd DevControlMCP
 npm run setup
 ```
+
+### Claude CLI Setup (Optional)
+The `claude_code` tool requires the Claude CLI to be installed and configured:
+
+```bash
+# Install Claude CLI
+npm run install:claude-cli
+
+# One-time permission acceptance (required)
+claude --dangerously-skip-permissions
+# Follow the prompts to accept permissions
+```
+
+**Note**: The `--dangerously-skip-permissions` flag is required for the `claude_code` tool to function without interactive prompts.
 
 ### Logging Utilities
 
@@ -90,6 +106,7 @@ Tool call logs include:
 | | `search_code` | Search for patterns in file contents |
 | | `get_file_info` | Get file metadata |
 | **Text Editing** | `edit_block` | Make surgical text replacements |
+| **Meta-Tool** | `claude_code` | Execute prompts via Claude Code CLI with full capabilities |
 
 ## Text Editing Example
 
@@ -101,6 +118,47 @@ content to find
 new content
 >>>>>>> REPLACE
 ```
+
+## Claude Code Meta-Tool
+
+The `claude_code` tool allows you to delegate complex tasks directly to Claude Code CLI instances. This is particularly useful for:
+
+- Complex multi-step coding tasks
+- Advanced Git operations  
+- Terminal command sequences
+- Web research and summarization
+- Tasks requiring specialized Claude Code capabilities
+
+### Usage
+
+```json
+{
+  "prompt": "Refactor this function to use async/await",
+  "workFolder": "/path/to/project", 
+  "tools": ["Bash", "Read", "Write", "Edit"]
+}
+```
+
+### Parameters
+
+- **`prompt`** (required): Natural language instruction for Claude Code
+- **`workFolder`** (optional): Absolute path to working directory
+- **`tools`** (optional): Array of Claude tools to enable (e.g., ["Bash", "Read", "Write"])
+
+### Configuration
+
+Configure Claude CLI paths in your DevControlMCP config:
+
+```json
+{
+  "claudeCliPath": "/custom/path/to/claude",
+  "claudeCliName": "claude-custom"
+}
+```
+
+### Security Note
+
+⚠️ **IMPORTANT**: The `claude_code` tool bypasses DevControlMCP's internal permission system (`allowedDirectories`, `blockedCommands`) because it delegates to an external Claude CLI process. The Claude CLI operates with its own (skipped) permissions.
 
 ## Configuration Options
 
@@ -115,6 +173,8 @@ The following configuration options can be set using the `set_config_value` tool
 | `fileWriteLineLimit` | Maximum number of lines to write to a file | `50` |
 | `maxLineCountLimit` | Maximum line count for file reading (prevents memory issues on very large files) | `1000000` |
 | `binaryFileSizeLimit` | Maximum size for binary files in bytes | `10485760` (10MB) |
+| `claudeCliPath` | Absolute path to Claude CLI executable | `undefined` |
+| `claudeCliName` | Name of Claude CLI binary | `'claude'` |
 
 ## Customizing Tool Descriptions
 
@@ -145,12 +205,13 @@ These environment variables can be set in your shell profile for persistence or 
 
 ## Security Notes
 
-- Set `allowedDirectories` to control filesystem access
+- Set `allowedDirectories` to control filesystem access for most tools
 - Be cautious when running terminal commands as they have full access to your system
 - Use a separate chat for configuration changes
+- **`claude_code` tool**: Bypasses internal permission controls and delegates to Claude CLI with `--dangerously-skip-permissions`
 - Monitor the audit logs regularly to track tool usage
 - Set appropriate limits for binary file size and line reading to prevent memory exhaustion
-- This thing can completely destroy your system, files, projects and even worse... so be careful. By default this thing has permission to do whatever it wants on your computer.
+- This tool can completely destroy your system, files, projects and even worse... so be careful. By default, DevControlMCP tools have broad permissions. The `claude_code` tool, in particular, operates with full system access by design, bypassing DevControlMCP's specific permission settings.
 
 ## What's New in v0.2.0
 
@@ -166,6 +227,7 @@ This release includes several improvements from the upstream project:
 - **Levenshtein Distance**: Added fastest-levenshtein library for improved string comparison
 - **Enhanced Configuration Options**: New options for controlling line limits, binary file size limits, and maximum line counts
 - **Customizable Tool Descriptions**: Easily change tool descriptions using environment variables with length validation
+- **Claude Code Integration**: New meta-tool for delegating complex tasks to Claude Code CLI instances
 
 All features have been implemented without telemetry, maintaining our commitment to privacy.
 
