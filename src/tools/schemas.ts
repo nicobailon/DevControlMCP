@@ -97,3 +97,18 @@ export const ClaudeCodeArgsSchema = z.object({
   workFolder: z.string().optional(),
   tools: z.array(z.string()).optional(),
 });
+
+// Command management tool schemas
+export const CommandHelpArgsSchema = z.object({});
+
+export const HotkeyHelpArgsSchema = z.object({});
+
+export const CustomCommandArgsSchema = z.object({
+  name: z.string(),
+  parameters: z.record(z.any()).optional(),
+});
+
+export const HotkeyArgsSchema = z.object({
+  key: z.string().length(1),
+  parameters: z.record(z.any()).optional(),
+});

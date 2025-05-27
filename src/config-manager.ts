@@ -3,6 +3,7 @@ import path from 'path';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import os from 'os';
+import { CommandConfig } from './command-system/types.js';
 
 export interface ServerConfig {
   blockedCommands?: string[];
@@ -14,6 +15,12 @@ export interface ServerConfig {
   fileReadLineLimit?: number; // Default line limit for file read operations
   maxLineCountLimit?: number; // Maximum line count in files (prevents memory issues)
   binaryFileSizeLimit?: number; // Maximum size for binary files in bytes
+  
+  // Command system configuration
+  commandSystem?: CommandConfig; // Custom commands and hotkeys configuration
+  enableCustomCommands?: boolean; // Enable/disable custom command system
+  enableHotkeys?: boolean; // Enable/disable hotkey system
+  
   [key: string]: any; // Allow for arbitrary configuration keys
 }
 
@@ -131,7 +138,42 @@ class ConfigManager {
       fileWriteLineLimit: 50,  // Default line limit for file write operations
       fileReadLineLimit: 1000,  // Default line limit for file read operations
       maxLineCountLimit: 1000000, // Maximum line count (1 million lines)
-      binaryFileSizeLimit: 10 * 1024 * 1024 // 10 MB limit for binary files
+      binaryFileSizeLimit: 10 * 1024 * 1024, // 10 MB limit for binary files
+      
+      // Command system defaults
+      enableCustomCommands: true, // Enable custom command system by default
+      enableHotkeys: true, // Enable hotkey system by default
+      commandSystem: {
+        commands: {
+          // Example custom command
+          npm_install: {
+            description: "Install npm packages",
+            template: "npm install {{package}}",
+            parameters: {
+              package: {
+                type: "string",
+                required: true,
+                description: "Package name to install"
+              }
+            }
+          }
+        },
+        hotkeys: {
+          // Example hotkeys - these work without parameters or have sensible defaults
+          c: {
+            description: "Show current configuration",
+            delegate: "get_config"
+          },
+          p: {
+            description: "List all running processes",
+            delegate: "list_processes"
+          },
+          s: {
+            description: "List active terminal sessions",
+            delegate: "list_sessions"
+          }
+        }
+      }
     };
   }
 
@@ -235,6 +277,49 @@ class ConfigManager {
     await this.saveConfig();
     return { ...this.config };
   }
+
+  /**
+   * Get command system configuration
+   */
+  async getCommandConfig(): Promise<CommandConfig> {
+    await this.init();
+    return this.config.commandSystem || { commands: {}, hotkeys: {} };
+  }
+
+  /**
+   * Check if custom commands are enabled
+   */
+  async isCustomCommandsEnabled(): Promise<boolean> {
+    await this.init();
+    return this.config.enableCustomCommands !== false; // Default to true
+  }
+
+  /**
+   * Check if hotkeys are enabled
+   */
+  async isHotkeysEnabled(): Promise<boolean> {
+    await this.init();
+    return this.config.enableHotkeys !== false; // Default to true
+  }
+
+  /**
+   * Enable or disable custom commands
+   */
+  async setCustomCommandsEnabled(enabled: boolean): Promise<void> {
+    await this.setValue('enableCustomCommands', enabled);
+  }
+
+  /**
+   * Enable or disable hotkeys
+   */
+  async setHotkeysEnabled(enabled: boolean): Promise<void> {
+    await this.setValue('enableHotkeys', enabled);
+  }
+
+
+
+
+
 }
 
 // Export singleton instance
