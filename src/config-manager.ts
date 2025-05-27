@@ -159,18 +159,18 @@ class ConfigManager {
           }
         },
         hotkeys: {
-          // Example hotkeys
-          f: {
-            description: "Search files quickly",
-            delegate: "search_files"
+          // Example hotkeys - these work without parameters or have sensible defaults
+          c: {
+            description: "Show current configuration",
+            delegate: "get_config"
           },
-          l: {
-            description: "List directory contents",
-            delegate: "list_directory"
+          p: {
+            description: "List all running processes",
+            delegate: "list_processes"
           },
-          r: {
-            description: "Read file contents",
-            delegate: "read_file"
+          s: {
+            description: "List active terminal sessions",
+            delegate: "list_sessions"
           }
         }
       }

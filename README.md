@@ -20,6 +20,8 @@ DevControlMCP is an MCP (Model Context Protocol) tool that enables Claude deskto
 - **Line-based File Reading**: Read files with line offset and limits for better handling of large files
 - **Audit Logging**: Track all tool calls with automatic log rotation
 - **Fuzzy Search Logging**: Comprehensive logging and troubleshooting for search operations
+- **Custom Command System**: Create reusable command templates with parameter validation and security integration
+- **Hotkey System**: Single-letter shortcuts that delegate to existing MCP tools for quick access
 
 ## Installation
 
@@ -107,6 +109,15 @@ Tool call logs include:
 | | `get_file_info` | Get file metadata |
 | **Text Editing** | `edit_block` | Make surgical text replacements |
 | **Meta-Tool** | `claude_code` | Execute prompts via Claude Code CLI with full capabilities |
+| **Command System** | `custom_command` | Execute custom command templates with parameter substitution |
+| | `hotkey` | Execute single-letter shortcuts that delegate to MCP tools |
+| | `command_help` | Get help and examples for custom commands |
+| | `hotkey_help` | Get help and list of available hotkeys |
+| | `add_command` | Create or update a custom command template |
+| | `add_hotkey` | Create or update a hotkey shortcut |
+| | `remove_command` | Remove a custom command |
+| | `remove_hotkey` | Remove a hotkey |
+| | `get_command_details` | Get detailed information about commands or hotkeys |
 
 ## Text Editing Example
 
@@ -160,6 +171,230 @@ Configure Claude CLI paths in your DevControlMCP config:
 
 ⚠️ **IMPORTANT**: The `claude_code` tool bypasses DevControlMCP's internal permission system (`allowedDirectories`, `blockedCommands`) because it delegates to an external Claude CLI process. The Claude CLI operates with its own (skipped) permissions.
 
+## Command System
+
+The DevControlMCP command system allows you to create reusable command templates and single-letter hotkeys for frequently used operations. This system includes comprehensive parameter validation, security integration, and hot-reloading capabilities.
+
+### Custom Commands
+
+Custom commands are reusable templates with parameter substitution that get executed as terminal commands. They support:
+
+- **Template Parameters**: Use `{{parameter}}` syntax for dynamic values
+- **Parameter Validation**: String, number, boolean, and enum types with constraints
+- **Security Integration**: Automatic checking against `blockedCommands` configuration
+- **Risk Analysis**: Templates are analyzed for security risks (high/medium/low)
+
+#### Example Custom Command
+
+```json
+{
+  "name": "deploy_app",
+  "description": "Deploy application to specified environment",
+  "template": "npm run deploy --env={{environment}} --version={{version}}",
+  "parameters": {
+    "environment": {
+      "type": "enum",
+      "enum": ["staging", "production"],
+      "required": true,
+      "description": "Target deployment environment"
+    },
+    "version": {
+      "type": "string",
+      "required": true,
+      "description": "Version to deploy"
+    }
+  }
+}
+```
+
+#### Using Custom Commands
+
+Execute with the `custom_command` tool:
+
+```json
+{
+  "name": "deploy_app",
+  "parameters": {
+    "environment": "staging",
+    "version": "1.2.3"
+  }
+}
+```
+
+### Hotkeys
+
+Hotkeys are single-letter shortcuts that delegate to existing MCP tools. They provide:
+
+- **Quick Access**: Single letter execution (e.g., 'p' for process list)
+- **Tool Delegation**: Route to any existing MCP tool
+- **Parameter Passthrough**: Parameters are passed to the delegated tool
+
+**Best hotkey candidates are tools that:**
+- Work without parameters (e.g., `get_config`, `list_processes`, `list_sessions`)
+- Have sensible defaults (e.g., `list_directory` can default to current directory)
+- Are frequently used operations
+
+**Less suitable for hotkeys are tools that:**
+- Always require specific parameters (e.g., `read_file` needs a path)
+- Perform destructive operations (e.g., `write_file`, `kill_process`)
+
+#### Example Hotkey
+
+```json
+{
+  "key": "p",
+  "description": "List all running processes",
+  "delegate": "list_processes"
+}
+```
+
+#### Using Hotkeys
+
+Execute with the `hotkey` tool:
+
+```json
+// No parameters needed for many hotkeys
+{
+  "key": "p"
+}
+
+// Some hotkeys accept optional parameters
+{
+  "key": "l",
+  "parameters": {
+    "path": "/specific/directory"
+  }
+}
+```
+
+### Command Management
+
+#### Adding Commands
+
+```json
+// Add custom command
+{
+  "tool": "add_command",
+  "arguments": {
+    "name": "test_project",
+    "command": {
+      "description": "Run tests for specific project module",
+      "template": "npm test -- --testPathPattern={{module}}",
+      "parameters": {
+        "module": {
+          "type": "string",
+          "required": true,
+          "description": "Module to test"
+        }
+      }
+    }
+  }
+}
+
+// Add hotkey
+{
+  "tool": "add_hotkey",
+  "arguments": {
+    "key": "l",
+    "hotkey": {
+      "description": "List directory contents",
+      "delegate": "list_directory"
+    }
+  }
+}
+```
+
+#### Getting Help
+
+```json
+// List all custom commands
+{"tool": "command_help"}
+
+// List all hotkeys  
+{"tool": "hotkey_help"}
+
+// Get details for specific command
+{
+  "tool": "get_command_details",
+  "arguments": {"name": "deploy_app"}
+}
+```
+
+### Security Features
+
+#### Template Risk Analysis
+
+All command templates are automatically analyzed for security risks:
+
+- **High Risk**: Contains dangerous patterns (rm -rf, sudo, command injection)
+- **Medium Risk**: File operations, network requests, permission changes
+- **Low Risk**: Standard safe operations
+
+#### Security Integration
+
+- Templates are processed and checked against `blockedCommands`
+- Security violations are logged with detailed information
+- Risk analysis provides recommendations for safer alternatives
+
+#### Example Security Check
+
+```bash
+# This template would be flagged as high-risk:
+"rm -rf {{directory}} && curl {{url}} | sh"
+
+# Safer alternative:
+"npm run clean:{{environment}}"
+```
+
+### Configuration
+
+Command system settings can be configured:
+
+```json
+{
+  "commandSystem": {
+    "commands": {
+      "build_project": {
+        "description": "Build project with specified target",
+        "template": "npm run build:{{target}}",
+        "parameters": {
+          "target": {
+            "type": "enum", 
+            "enum": ["dev", "prod"],
+            "required": true
+          }
+        }
+      }
+    },
+    "hotkeys": {
+      "c": {
+        "description": "Show current configuration",
+        "delegate": "get_config"
+      },
+      "p": {
+        "description": "List all running processes", 
+        "delegate": "list_processes"
+      },
+      "s": {
+        "description": "List active terminal sessions",
+        "delegate": "list_sessions"
+      }
+    }
+  },
+  "enableCustomCommands": true,
+  "enableHotkeys": true
+}
+```
+
+### Hot-Reloading
+
+The command system supports hot-reloading of configuration changes:
+
+- Changes to command/hotkey configurations are automatically detected
+- Active commands are re-registered without server restart
+- User feedback is provided on successful reloads
+- Invalid configurations are rejected with detailed error messages
+
 ## Configuration Options
 
 The following configuration options can be set using the `set_config_value` tool:
@@ -175,6 +410,9 @@ The following configuration options can be set using the `set_config_value` tool
 | `binaryFileSizeLimit` | Maximum size for binary files in bytes | `10485760` (10MB) |
 | `claudeCliPath` | Absolute path to Claude CLI executable | `undefined` |
 | `claudeCliName` | Name of Claude CLI binary | `'claude'` |
+| `enableCustomCommands` | Enable/disable custom command system | `true` |
+| `enableHotkeys` | Enable/disable hotkey system | `true` |
+| `commandSystem` | Configuration object for custom commands and hotkeys | `{}` |
 
 ## Customizing Tool Descriptions
 
@@ -228,6 +466,11 @@ This release includes several improvements from the upstream project:
 - **Enhanced Configuration Options**: New options for controlling line limits, binary file size limits, and maximum line counts
 - **Customizable Tool Descriptions**: Easily change tool descriptions using environment variables with length validation
 - **Claude Code Integration**: New meta-tool for delegating complex tasks to Claude Code CLI instances
+- **Custom Command System**: Create reusable command templates with parameter validation, security integration, and risk analysis
+- **Hotkey System**: Single-letter shortcuts that delegate to existing MCP tools for quick access
+- **Advanced Security Features**: Template risk analysis, security violation reporting, and comprehensive parameter validation
+- **Hot-Reloading**: Automatic detection and reloading of command system configuration changes
+- **Batch Operations**: Efficient batch updates for multiple commands and hotkeys to minimize config saves
 
 All features have been implemented without telemetry, maintaining our commitment to privacy.
 
