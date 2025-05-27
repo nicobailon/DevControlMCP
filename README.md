@@ -233,6 +233,21 @@ Hotkeys are single-letter shortcuts that delegate to existing MCP tools. They pr
 - Always require specific parameters (e.g., `read_file` needs a path)
 - Perform destructive operations (e.g., `write_file`, `kill_process`)
 
+#### Default Hotkeys
+
+DevControlMCP provides these default hotkeys out of the box:
+
+| Key | Tool | Description |
+|-----|------|-------------|
+| `c` | `get_config` | Show current configuration |
+| `s` | `list_sessions` | List all terminal sessions |
+| `p` | `list_processes` | List running processes |
+| `l` | `list_directory` | List current directory contents |
+| `h` | `command_help` | Show available commands |
+| `k` | `hotkey_help` | Show available hotkeys |
+
+These defaults can be overridden by defining hotkeys with the same keys in your configuration JSON.
+
 #### Example Hotkey
 
 ```json

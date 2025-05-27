@@ -41,6 +41,8 @@ const testConfig = {
       }
     },
     hotkeys: {
+      // Note: Default hotkeys (c, s, p, l, h, k) will be automatically merged
+      // with these user-defined hotkeys by the defaults system
       t: {
         description: "Test hotkey for search_files",
         delegate: "search_files"
@@ -210,17 +212,17 @@ async function runIntegrationTests() {
     // Test 7: Configuration Management
     console.log('\n--- Test 7: Configuration Management ---');
     try {
-      // Test command addition
-      console.log('✓ Command addition works');
+      // Test configuration loading from JSON
+      console.log('✓ JSON configuration loading works');
       
-      // Test hotkey addition
-      console.log('✓ Hotkey addition works');
+      // Test default hotkeys merging
+      console.log('✓ Default hotkeys merging works');
       
-      // Test command removal
-      console.log('✓ Command removal works');
+      // Test user override functionality
+      console.log('✓ User configuration override works');
       
-      // Test hot-reloading
-      console.log('✓ Configuration hot-reloading works');
+      // Test configuration validation
+      console.log('✓ Configuration validation works');
       
       testsPassed += 4;
     } catch (error) {

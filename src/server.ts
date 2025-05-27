@@ -27,6 +27,10 @@ import {
     SetConfigValueArgsSchema,
     ListProcessesArgsSchema,
     ClaudeCodeArgsSchema,
+    CommandHelpArgsSchema,
+    HotkeyHelpArgsSchema,
+    CustomCommandArgsSchema,
+    HotkeyArgsSchema,
 } from './tools/schemas.js';
 import {getConfig, setConfigValue} from './tools/config.js';
 
@@ -265,6 +269,40 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         "Executes a prompt directly using the Claude Code CLI with permissions bypassed. This tool provides access to Claude Code's full capabilities including file operations, Git, terminal commands, and web search. Use 'workFolder' for contextual execution and 'tools' to specify which Claude tools to enable (e.g., ['Bash', 'Read', 'Write']). Requires Claude CLI to be installed and permissions accepted manually once with 'claude --dangerously-skip-permissions'. WARNING: This tool bypasses DevControlMCP's internal permission system as it delegates to an external CLI process.",
                     inputSchema: zodToJsonSchema(ClaudeCodeArgsSchema),
                 },
+
+                // Command management tools
+                {
+                    name: "command_help",
+                    description: getToolDescription(
+                        "command_help",
+                        "Get help and information about available custom commands and hotkeys. Shows configuration status, command definitions, and usage examples."
+                    ),
+                    inputSchema: zodToJsonSchema(CommandHelpArgsSchema),
+                },
+                {
+                    name: "hotkey_help",
+                    description: getToolDescription(
+                        "hotkey_help",
+                        "Get help and information about available hotkeys. Shows available single-letter shortcuts and their delegated tools."
+                    ),
+                    inputSchema: zodToJsonSchema(HotkeyHelpArgsSchema),
+                },
+                {
+                    name: "custom_command",
+                    description: getToolDescription(
+                        "custom_command",
+                        "Execute a custom command template with parameters. Custom commands are defined in the configuration and support parameter substitution."
+                    ),
+                    inputSchema: zodToJsonSchema(CustomCommandArgsSchema),
+                },
+                {
+                    name: "hotkey",
+                    description: getToolDescription(
+                        "hotkey",
+                        "Execute a hotkey (single-letter shortcut) that delegates to an existing MCP tool. Default hotkeys: 'c' (config), 's' (sessions), 'p' (processes), 'l' (list dir), 'h' (commands), 'k' (hotkeys)."
+                    ),
+                    inputSchema: zodToJsonSchema(HotkeyArgsSchema),
+                },
             ],
         };
     } catch (error) {
@@ -359,6 +397,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 
             case "claude_code":
                 return await handlers.handleClaudeCode(args);
+
+            // Command management tools
+            case "command_help":
+                return await handlers.handleCommandHelp(args);
+
+            case "hotkey_help":
+                return await handlers.handleHotkeyHelp(args);
+
+            case "custom_command":
+                return await handlers.handleCustomCommand(args);
+
+            case "hotkey":
+                return await handlers.handleHotkey(args);
 
             default:
                 // Telemetry removed

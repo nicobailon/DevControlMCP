@@ -51,7 +51,13 @@ const TOOL_HANDLERS: Record<string, (args: any) => Promise<ServerResult>> = {
   'edit_block': handlers.handleEditBlock,
 
   // Meta-tool
-  'claude_code': handlers.handleClaudeCode
+  'claude_code': handlers.handleClaudeCode,
+
+  // Command management tools
+  'command_help': handlers.handleCommandHelp,
+  'hotkey_help': handlers.handleHotkeyHelp,
+  'custom_command': handlers.handleCustomCommand,
+  'hotkey': handlers.handleHotkey
 };
 
 /**
