@@ -7,6 +7,7 @@ import { commandRegistry } from '../command-system/command-registry.js';
 import { CommandValidator } from '../command-system/command-validator.js';
 import { CommandSecurity } from '../command-system/security-integration.js';
 import { CommandErrorHandler } from '../command-system/error-handling.js';
+import { Command } from '../command-system/types.js';
 import { createErrorResponse } from '../error-handlers.js';
 import { ServerResult } from '../types.js';
 import * as handlers from '../handlers/index.js';
@@ -133,7 +134,8 @@ async function executeDelegatedTool(
     const result = await handler(parameters);
     return result;
   } catch (error) {
-    return CommandErrorHandler.handleDelegateError(toolName, error, hotkeyKey);
+    const errorMessage = error instanceof Error ? error : String(error);
+    return CommandErrorHandler.handleDelegateError(toolName, errorMessage, hotkeyKey);
   }
 }
 
@@ -249,8 +251,14 @@ export async function validateHotkeyConfig(args: {
   try {
     const { key, command } = args;
 
+    // Create command object with name
+    const commandWithName: Command = {
+      name: key,
+      ...command
+    };
+    
     // Validate the hotkey configuration
-    const validation = CommandValidator.validateCommandConfig(key, command, 'hotkey');
+    const validation = CommandValidator.validateCommandConfig(key, commandWithName, 'hotkey');
     
     if (!validation.valid) {
       return {

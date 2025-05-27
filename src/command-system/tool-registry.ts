@@ -3,7 +3,7 @@
  */
 
 import { commandRegistry } from './command-registry.js';
-import { Command, CommandRegistryEntry } from './types.js';
+import { CommandRegistryEntry } from './types.js';
 import { z } from 'zod';
 
 /**
@@ -35,7 +35,7 @@ export class DynamicToolRegistry {
 
     // Generate tools for custom commands
     const commands = commandRegistry.getAllCommands();
-    for (const [name, entry] of commands) {
+    for (const [_, entry] of commands) {
       if (entry.toolName) {
         tools.push({
           name: entry.toolName,
@@ -99,7 +99,7 @@ export class DynamicToolRegistry {
    */
   getCommandForTool(toolName: string): CommandRegistryEntry | undefined {
     const commands = commandRegistry.getAllCommands();
-    for (const [name, entry] of commands) {
+    for (const [_, entry] of commands) {
       if (entry.toolName === toolName) {
         return entry;
       }
@@ -107,20 +107,7 @@ export class DynamicToolRegistry {
     return undefined;
   }
 
-  /**
-   * Clear all registered tools
-   */
-  clear(): void {
-    this.registeredTools.clear();
-  }
 
-  /**
-   * Refresh tool registration based on current command registry
-   */
-  refresh(): void {
-    this.clear();
-    this.generateToolDefinitions(); // This will re-populate registeredTools
-  }
 
   /**
    * Generate tool description for a command

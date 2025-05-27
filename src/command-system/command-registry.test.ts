@@ -60,135 +60,144 @@ describe('CommandRegistry', () => {
     });
   });
 
-  describe('registerCommand', () => {
-    it('should register a valid custom command', () => {
-      const command: Command = {
-        name: 'test_cmd',
-        description: 'Test command',
-        template: 'echo {{message}}',
-        parameters: {
-          message: { type: 'string', required: true }
+  describe('configuration validation', () => {
+    it('should validate commands during loadFromConfig', () => {
+      const validConfig: CommandConfig = {
+        commands: {
+          test_cmd: {
+            description: 'Test command',
+            template: 'echo {{message}}',
+            parameters: {
+              message: { type: 'string', required: true }
+            }
+          }
         }
       };
 
-      registry.registerCommand('test_cmd', command);
+      expect(() => {
+        registry.loadFromConfig(validConfig);
+      }).not.toThrow();
+      
       expect(registry.hasCommand('test_cmd')).toBe(true);
-
       const entry = registry.getCommand('test_cmd');
       expect(entry?.command.description).toBe('Test command');
       expect(entry?.toolName).toBe('custom_test_cmd');
     });
 
-    it('should reject command without template', () => {
-      const command: Command = {
-        name: 'invalid_cmd',
-        description: 'Invalid command'
-      };
-
-      expect(() => {
-        registry.registerCommand('invalid_cmd', command);
-      }).toThrow('Invalid command');
-    });
-
-    it('should reject command with invalid template', () => {
-      const command: Command = {
-        name: 'invalid_cmd',
-        description: 'Invalid command',
-        template: 'echo {{invalid-param}}'
-      };
-
-      expect(() => {
-        registry.registerCommand('invalid_cmd', command);
-      }).toThrow('Invalid command');
-    });
-
-    it('should reject command with template parameter not in config', () => {
-      const command: Command = {
-        name: 'invalid_cmd',
-        description: 'Invalid command',
-        template: 'echo {{message}}',
-        parameters: {
-          other: { type: 'string' }
+    it('should reject command without template during loadFromConfig', () => {
+      const invalidConfig: CommandConfig = {
+        commands: {
+          invalid_cmd: {
+            description: 'Invalid command'
+          } as any
         }
       };
 
       expect(() => {
-        registry.registerCommand('invalid_cmd', command);
-      }).toThrow('Template parameter \'message\' is not defined');
+        registry.loadFromConfig(invalidConfig);
+      }).toThrow('Invalid command');
     });
-  });
 
-  describe('registerHotkey', () => {
-    it('should register a valid hotkey', () => {
-      const command: Command = {
-        name: 't',
-        description: 'Test hotkey',
-        delegate: 'search_files'
+    it('should reject command with invalid template during loadFromConfig', () => {
+      const invalidConfig: CommandConfig = {
+        commands: {
+          invalid_cmd: {
+            description: 'Invalid command',
+            template: 'echo {{invalid-param}}'
+          }
+        }
       };
 
-      registry.registerHotkey('t', command);
-      expect(registry.hasHotkey('t')).toBe(true);
+      expect(() => {
+        registry.loadFromConfig(invalidConfig);
+      }).toThrow('Invalid command');
+    });
 
+    it('should reject command with template parameter not in config during loadFromConfig', () => {
+      const invalidConfig: CommandConfig = {
+        commands: {
+          invalid_cmd: {
+            description: 'Invalid command',
+            template: 'echo {{message}}',
+            parameters: {
+              other: { type: 'string' }
+            }
+          }
+        }
+      };
+
+      expect(() => {
+        registry.loadFromConfig(invalidConfig);
+      }).toThrow('Template parameter \'message\' is not defined');
+    });
+
+    it('should validate hotkeys during loadFromConfig', () => {
+      const validConfig: CommandConfig = {
+        hotkeys: {
+          t: {
+            description: 'Test hotkey',
+            delegate: 'search_files'
+          }
+        }
+      };
+
+      expect(() => {
+        registry.loadFromConfig(validConfig);
+      }).not.toThrow();
+      
+      expect(registry.hasHotkey('t')).toBe(true);
       const entry = registry.getHotkey('t');
       expect(entry?.command.description).toBe('Test hotkey');
       expect(entry?.command.delegate).toBe('search_files');
     });
 
-    it('should reject invalid hotkey key', () => {
-      const command: Command = {
-        name: 'invalid',
-        description: 'Invalid hotkey',
-        delegate: 'search_files'
+    it('should reject invalid hotkey key during loadFromConfig', () => {
+      const invalidConfig: CommandConfig = {
+        hotkeys: {
+          invalid: {
+            description: 'Invalid hotkey',
+            delegate: 'search_files'
+          }
+        }
       };
 
       expect(() => {
-        registry.registerHotkey('invalid', command);
+        registry.loadFromConfig(invalidConfig);
       }).toThrow('Invalid hotkey key');
     });
 
-    it('should reject hotkey without delegate', () => {
-      const command: Command = {
-        name: 't',
-        description: 'Invalid hotkey'
+    it('should reject hotkey without delegate during loadFromConfig', () => {
+      const invalidConfig: CommandConfig = {
+        hotkeys: {
+          t: {
+            description: 'Invalid hotkey'
+          } as any
+        }
       };
 
       expect(() => {
-        registry.registerHotkey('t', command);
+        registry.loadFromConfig(invalidConfig);
       }).toThrow('Invalid hotkey');
     });
   });
 
-  describe('command management', () => {
+  describe('configuration and help', () => {
     beforeEach(() => {
-      registry.registerCommand('test_cmd', {
-        name: 'test_cmd',
-        description: 'Test command',
-        template: 'echo {{message}}',
-        parameters: { message: { type: 'string' } }
+      registry.loadFromConfig({
+        commands: {
+          test_cmd: {
+            description: 'Test command',
+            template: 'echo {{message}}',
+            parameters: { message: { type: 'string' } }
+          }
+        },
+        hotkeys: {
+          t: {
+            description: 'Test hotkey',
+            delegate: 'search_files'
+          }
+        }
       });
-      registry.registerHotkey('t', {
-        name: 't',
-        description: 'Test hotkey',
-        delegate: 'search_files'
-      });
-    });
-
-    it('should remove commands', () => {
-      expect(registry.removeCommand('test_cmd')).toBe(true);
-      expect(registry.hasCommand('test_cmd')).toBe(false);
-      expect(registry.removeCommand('nonexistent')).toBe(false);
-    });
-
-    it('should remove hotkeys', () => {
-      expect(registry.removeHotkey('t')).toBe(true);
-      expect(registry.hasHotkey('t')).toBe(false);
-      expect(registry.removeHotkey('x')).toBe(false);
-    });
-
-    it('should clear all commands and hotkeys', () => {
-      registry.clear();
-      expect(registry.getStats().commandCount).toBe(0);
-      expect(registry.getStats().hotkeyCount).toBe(0);
     });
 
     it('should get custom tool names', () => {

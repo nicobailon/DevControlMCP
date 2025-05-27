@@ -6,6 +6,7 @@ import { commandRegistry } from '../command-system/command-registry.js';
 import { CommandValidator } from '../command-system/command-validator.js';
 import { CommandSecurity } from '../command-system/security-integration.js';
 import { TemplateEngine } from '../command-system/template-engine.js';
+import { Command } from '../command-system/types.js';
 import { createErrorResponse } from '../error-handlers.js';
 import { ServerResult } from '../types.js';
 import { handleExecuteCommand } from '../handlers/terminal-handlers.js';
@@ -118,8 +119,14 @@ export async function validateCustomCommandConfig(args: {
   try {
     const { name, command } = args;
 
+    // Create command object with name
+    const commandWithName: Command = {
+      name,
+      ...command
+    };
+    
     // Validate the command configuration
-    const validation = CommandValidator.validateCommandConfig(name, command, 'custom');
+    const validation = CommandValidator.validateCommandConfig(name, commandWithName, 'custom');
     
     if (!validation.valid) {
       return {
@@ -136,7 +143,7 @@ export async function validateCustomCommandConfig(args: {
     }
 
     // Generate security report
-    const securityReport = CommandSecurity.generateSecurityReport(command);
+    const securityReport = CommandSecurity.generateSecurityReport(commandWithName);
 
     // Analyze template
     let templateAnalysis;

@@ -3,7 +3,7 @@ import path from 'path';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import os from 'os';
-import { CommandConfig, CommandConfigEntry } from './command-system/types.js';
+import { CommandConfig } from './command-system/types.js';
 
 export interface ServerConfig {
   blockedCommands?: string[];
@@ -287,76 +287,6 @@ class ConfigManager {
   }
 
   /**
-   * Update command system configuration
-   */
-  async updateCommandConfig(commandConfig: CommandConfig): Promise<void> {
-    await this.init();
-    this.config.commandSystem = commandConfig;
-    await this.saveConfig();
-  }
-
-  /**
-   * Ensure command system structure exists
-   */
-  private ensureCommandSystemStructure(): void {
-    this.config.commandSystem = this.config.commandSystem || { commands: {}, hotkeys: {} };
-    this.config.commandSystem.commands = this.config.commandSystem.commands || {};
-    this.config.commandSystem.hotkeys = this.config.commandSystem.hotkeys || {};
-  }
-
-  /**
-   * Add or update a custom command
-   */
-  async setCommand(name: string, command: CommandConfigEntry): Promise<void> {
-    await this.init();
-    this.ensureCommandSystemStructure();
-    this.config.commandSystem!.commands![name] = command;
-    await this.saveConfig();
-  }
-
-  /**
-   * Add or update a hotkey
-   */
-  async setHotkey(key: string, hotkey: CommandConfigEntry): Promise<void> {
-    await this.init();
-    this.ensureCommandSystemStructure();
-    this.config.commandSystem!.hotkeys![key] = hotkey;
-    await this.saveConfig();
-  }
-
-  /**
-   * Remove a custom command
-   */
-  async removeCommand(name: string): Promise<boolean> {
-    await this.init();
-    if (!this.config.commandSystem?.commands) {
-      return false;
-    }
-    const existed = name in this.config.commandSystem.commands;
-    delete this.config.commandSystem.commands[name];
-    if (existed) {
-      await this.saveConfig();
-    }
-    return existed;
-  }
-
-  /**
-   * Remove a hotkey
-   */
-  async removeHotkey(key: string): Promise<boolean> {
-    await this.init();
-    if (!this.config.commandSystem?.hotkeys) {
-      return false;
-    }
-    const existed = key in this.config.commandSystem.hotkeys;
-    delete this.config.commandSystem.hotkeys[key];
-    if (existed) {
-      await this.saveConfig();
-    }
-    return existed;
-  }
-
-  /**
    * Check if custom commands are enabled
    */
   async isCustomCommandsEnabled(): Promise<boolean> {
@@ -386,113 +316,10 @@ class ConfigManager {
     await this.setValue('enableHotkeys', enabled);
   }
 
-  /**
-   * Batch update multiple commands at once
-   * Avoids multiple saveConfig() calls for better performance
-   */
-  async setCommands(commands: Record<string, CommandConfigEntry>): Promise<void> {
-    await this.init();
-    this.ensureCommandSystemStructure();
-    
-    for (const [name, command] of Object.entries(commands)) {
-      this.config.commandSystem!.commands![name] = command;
-    }
-    
-    await this.saveConfig();
-  }
 
-  /**
-   * Batch update multiple hotkeys at once
-   * Avoids multiple saveConfig() calls for better performance
-   */
-  async setHotkeys(hotkeys: Record<string, CommandConfigEntry>): Promise<void> {
-    await this.init();
-    this.ensureCommandSystemStructure();
-    
-    for (const [key, hotkey] of Object.entries(hotkeys)) {
-      this.config.commandSystem!.hotkeys![key] = hotkey;
-    }
-    
-    await this.saveConfig();
-  }
 
-  /**
-   * Batch remove multiple commands at once
-   * Returns list of command names that were actually removed
-   */
-  async removeCommands(names: string[]): Promise<string[]> {
-    await this.init();
-    if (!this.config.commandSystem?.commands) {
-      return [];
-    }
-    
-    const removedNames: string[] = [];
-    
-    for (const name of names) {
-      if (name in this.config.commandSystem.commands) {
-        delete this.config.commandSystem.commands[name];
-        removedNames.push(name);
-      }
-    }
-    
-    if (removedNames.length > 0) {
-      await this.saveConfig();
-    }
-    
-    return removedNames;
-  }
 
-  /**
-   * Batch remove multiple hotkeys at once
-   * Returns list of hotkey keys that were actually removed
-   */
-  async removeHotkeys(keys: string[]): Promise<string[]> {
-    await this.init();
-    if (!this.config.commandSystem?.hotkeys) {
-      return [];
-    }
-    
-    const removedKeys: string[] = [];
-    
-    for (const key of keys) {
-      if (key in this.config.commandSystem.hotkeys) {
-        delete this.config.commandSystem.hotkeys[key];
-        removedKeys.push(key);
-      }
-    }
-    
-    if (removedKeys.length > 0) {
-      await this.saveConfig();
-    }
-    
-    return removedKeys;
-  }
 
-  /**
-   * Batch update both commands and hotkeys in a single operation
-   * Most efficient for complex configuration updates
-   */
-  async setBatchCommandConfig(config: {
-    commands?: Record<string, CommandConfigEntry>;
-    hotkeys?: Record<string, CommandConfigEntry>;
-  }): Promise<void> {
-    await this.init();
-    this.ensureCommandSystemStructure();
-    
-    if (config.commands) {
-      for (const [name, command] of Object.entries(config.commands)) {
-        this.config.commandSystem!.commands![name] = command;
-      }
-    }
-    
-    if (config.hotkeys) {
-      for (const [key, hotkey] of Object.entries(config.hotkeys)) {
-        this.config.commandSystem!.hotkeys![key] = hotkey;
-      }
-    }
-    
-    await this.saveConfig();
-  }
 }
 
 // Export singleton instance

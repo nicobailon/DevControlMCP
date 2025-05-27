@@ -8,16 +8,19 @@ import { TemplateEngine } from './template-engine.js';
 
 /**
  * Central registry for managing custom commands and hotkeys
+ * Load-once pattern: commands and hotkeys are loaded at startup and remain immutable
  */
 export class CommandRegistry {
-  private commands: Map<string, CommandRegistryEntry> = new Map();
-  private hotkeys: Map<string, CommandRegistryEntry> = new Map();
+  private readonly commands: Map<string, CommandRegistryEntry> = new Map();
+  private readonly hotkeys: Map<string, CommandRegistryEntry> = new Map();
 
   /**
    * Load commands from configuration
    */
   loadFromConfig(config: CommandConfig): void {
-    this.clear();
+    // Clear existing registrations
+    this.commands.clear();
+    this.hotkeys.clear();
 
     // Load custom commands
     if (config.commands) {
@@ -131,27 +134,8 @@ export class CommandRegistry {
     return this.hotkeys.has(key);
   }
 
-  /**
-   * Remove a command
-   */
-  removeCommand(name: string): boolean {
-    return this.commands.delete(name);
-  }
 
-  /**
-   * Remove a hotkey
-   */
-  removeHotkey(key: string): boolean {
-    return this.hotkeys.delete(key);
-  }
 
-  /**
-   * Clear all commands and hotkeys
-   */
-  clear(): void {
-    this.commands.clear();
-    this.hotkeys.clear();
-  }
 
   /**
    * Get command statistics

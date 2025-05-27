@@ -113,11 +113,6 @@ Tool call logs include:
 | | `hotkey` | Execute single-letter shortcuts that delegate to MCP tools |
 | | `command_help` | Get help and examples for custom commands |
 | | `hotkey_help` | Get help and list of available hotkeys |
-| | `add_command` | Create or update a custom command template |
-| | `add_hotkey` | Create or update a hotkey shortcut |
-| | `remove_command` | Remove a custom command |
-| | `remove_hotkey` | Remove a hotkey |
-| | `get_command_details` | Get detailed information about commands or hotkeys |
 
 ## Text Editing Example
 
@@ -267,58 +262,6 @@ Execute with the `hotkey` tool:
 }
 ```
 
-### Command Management
-
-#### Adding Commands
-
-```json
-// Add custom command
-{
-  "tool": "add_command",
-  "arguments": {
-    "name": "test_project",
-    "command": {
-      "description": "Run tests for specific project module",
-      "template": "npm test -- --testPathPattern={{module}}",
-      "parameters": {
-        "module": {
-          "type": "string",
-          "required": true,
-          "description": "Module to test"
-        }
-      }
-    }
-  }
-}
-
-// Add hotkey
-{
-  "tool": "add_hotkey",
-  "arguments": {
-    "key": "l",
-    "hotkey": {
-      "description": "List directory contents",
-      "delegate": "list_directory"
-    }
-  }
-}
-```
-
-#### Getting Help
-
-```json
-// List all custom commands
-{"tool": "command_help"}
-
-// List all hotkeys  
-{"tool": "hotkey_help"}
-
-// Get details for specific command
-{
-  "tool": "get_command_details",
-  "arguments": {"name": "deploy_app"}
-}
-```
 
 ### Security Features
 
@@ -386,14 +329,239 @@ Command system settings can be configured:
 }
 ```
 
-### Hot-Reloading
+## JSON Configuration Guide
 
-The command system supports hot-reloading of configuration changes:
+Commands and hotkeys are configured by directly editing your configuration JSON file. This approach ensures reliable, persistent configuration that loads at server startup.
 
-- Changes to command/hotkey configurations are automatically detected
-- Active commands are re-registered without server restart
-- User feedback is provided on successful reloads
-- Invalid configurations are rejected with detailed error messages
+### Configuration File Location
+
+The configuration is stored in `~/.devcontrol-mcp/config.json`. This file is automatically created with defaults when the server first starts. If you need to create it manually, ensure the directory `~/.devcontrol-mcp/` exists first.
+
+### JSON Structure
+
+The command system configuration lives under the `commandSystem` key:
+
+```json
+{
+  "commandSystem": {
+    "commands": {
+      "command_name": {
+        "description": "What this command does",
+        "template": "command with {{parameters}}",
+        "parameters": {
+          "parameter_name": {
+            "type": "string|number|boolean|enum",
+            "required": true|false,
+            "description": "Parameter description",
+            "enum": ["option1", "option2"]
+          }
+        }
+      }
+    },
+    "hotkeys": {
+      "key": {
+        "description": "What this hotkey does",
+        "delegate": "mcp_tool_name"
+      }
+    }
+  },
+  "enableCustomCommands": true,
+  "enableHotkeys": true
+}
+```
+
+### Parameter Types
+
+Commands support various parameter types with validation:
+
+- **`string`**: Text values with optional length constraints
+- **`number`**: Numeric values with optional min/max validation  
+- **`boolean`**: True/false values
+- **`enum`**: Predefined list of valid options
+
+### Parameter Validation Options
+
+```json
+"parameter_name": {
+  "type": "string",
+  "required": true,
+  "description": "Parameter description",
+  "minLength": 3,
+  "maxLength": 50,
+  "pattern": "^[a-zA-Z0-9_-]+$"
+}
+```
+
+### Configuration Workflow
+
+1. **Edit the JSON**: Modify `~/.devcontrol-mcp/config.json` directly
+2. **Restart Claude Desktop**: Configuration loads only at startup
+3. **Use Commands**: Custom commands and hotkeys are immediately available
+
+### Validation and Error Handling
+
+- Configuration is validated at startup
+- Invalid JSON or command definitions prevent server startup
+- Check Claude Desktop logs for specific error details
+- Use `command_help` and `hotkey_help` tools to verify loaded configuration
+
+Example validation error in logs:
+```
+[ERROR] Command system validation failed: Command 'deploy_app' template contains undefined parameter: {{typo_parameter}}. Available parameters: environment, version
+```
+
+### Example Configurations
+
+#### Development Commands
+
+```json
+{
+  "commandSystem": {
+    "commands": {
+      "test_module": {
+        "description": "Run tests for specific project module",
+        "template": "npm test -- --testPathPattern={{module}}",
+        "parameters": {
+          "module": {
+            "type": "string",
+            "required": true,
+            "description": "Module to test",
+            "pattern": "^[a-zA-Z0-9_/-]+$"
+          }
+        }
+      },
+      "build_env": {
+        "description": "Build project for specified environment",
+        "template": "npm run build:{{environment}}",
+        "parameters": {
+          "environment": {
+            "type": "enum",
+            "enum": ["dev", "staging", "production"],
+            "required": true,
+            "description": "Target environment"
+          }
+        }
+      },
+      "git_push": {
+        "description": "Push to remote branch with upstream tracking",
+        "template": "git push -u origin {{branch}}",
+        "parameters": {
+          "branch": {
+            "type": "string",
+            "required": true,
+            "description": "Branch name to push"
+          }
+        }
+      }
+    },
+    "hotkeys": {
+      "p": {
+        "description": "List all running processes",
+        "delegate": "list_processes"
+      },
+      "c": {
+        "description": "Show current configuration",
+        "delegate": "get_config"
+      },
+      "s": {
+        "description": "List active terminal sessions",
+        "delegate": "list_sessions"
+      },
+      "l": {
+        "description": "List current directory contents",
+        "delegate": "list_directory"
+      }
+    }
+  }
+}
+```
+
+#### System Administration Commands
+
+```json
+{
+  "commandSystem": {
+    "commands": {
+      "service_control": {
+        "description": "Control system services",
+        "template": "sudo systemctl {{action}} {{service}}",
+        "parameters": {
+          "action": {
+            "type": "enum",
+            "enum": ["start", "stop", "restart", "status"],
+            "required": true,
+            "description": "Service action"
+          },
+          "service": {
+            "type": "string",
+            "required": true,
+            "description": "Service name"
+          }
+        }
+      },
+      "disk_usage": {
+        "description": "Check disk usage for directory",
+        "template": "du -sh {{directory}}",
+        "parameters": {
+          "directory": {
+            "type": "string",
+            "required": false,
+            "description": "Directory to check (defaults to current)"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Best Practices
+
+#### JSON Editing Guidelines
+
+- **Backup First**: Copy your working config before making changes
+- **Use a JSON Validator**: Validate syntax before restarting Claude Desktop
+- **Start Small**: Add one command/hotkey at a time to isolate issues
+- **Test Parameters**: Verify parameter validation works as expected
+- **Use Descriptive Names**: Choose clear, memorable command and parameter names
+
+#### Security Considerations
+
+- **Avoid Dangerous Commands**: Don't create templates with `rm -rf`, `sudo` without constraints
+- **Validate Input**: Use `enum` types for limited options, `pattern` for format validation
+- **Parameterize Safely**: Don't embed sensitive data directly in templates
+- **Check Risk Analysis**: Review security warnings in logs for high-risk templates
+
+#### Performance Tips
+
+- **Minimize Complexity**: Keep parameter validation simple for faster execution
+- **Use Required Params**: Mark essential parameters as required to prevent errors
+- **Group Related Commands**: Organize similar commands together for easier maintenance
+- **Document Purpose**: Include clear descriptions for all commands and parameters
+
+### Migration from Management Tools
+
+If you were previously using the management tools (`add_command`, `add_hotkey`, `remove_command`, etc.), here's how to migrate to the new JSON-based approach:
+
+#### What Changed
+
+- **No More Management Tools**: The `add_command`, `add_hotkey`, `remove_command`, `remove_hotkey`, and `get_command_details` tools have been removed
+- **No Hot-Reloading**: Configuration changes require restarting Claude Desktop
+- **JSON-Only Configuration**: Commands and hotkeys are configured by editing the JSON file directly
+
+#### Migration Steps
+
+1. **Export Current Configuration**: Use `get_config` tool to see your current command system configuration
+2. **Copy to JSON File**: Manually copy the `commandSystem` section to `~/.devcontrol-mcp/config.json`
+3. **Restart Claude Desktop**: Configuration is now loaded only at startup
+4. **Verify Commands**: Use `command_help` and `hotkey_help` to confirm your commands loaded correctly
+
+#### Benefits of the New Approach
+
+- **Reliability**: No risk of hot-reload failures or partial updates
+- **Simplicity**: Fewer tools and concepts to understand
+- **Performance**: Faster startup without hot-reload monitoring
+- **Predictability**: Configuration state is always known and consistent
 
 ## Configuration Options
 
@@ -469,8 +637,6 @@ This release includes several improvements from the upstream project:
 - **Custom Command System**: Create reusable command templates with parameter validation, security integration, and risk analysis
 - **Hotkey System**: Single-letter shortcuts that delegate to existing MCP tools for quick access
 - **Advanced Security Features**: Template risk analysis, security violation reporting, and comprehensive parameter validation
-- **Hot-Reloading**: Automatic detection and reloading of command system configuration changes
-- **Batch Operations**: Efficient batch updates for multiple commands and hotkeys to minimize config saves
 
 All features have been implemented without telemetry, maintaining our commitment to privacy.
 
